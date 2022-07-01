@@ -165,11 +165,14 @@ export default {
             splitLine: { show: false },
           },
         ],
+        // 缩放区域
+        dataZoom: {},
         series: [
           {
             name: "成交价格",
             data: this.close,
             type: "line",
+            symbol: "none", // 控制图上小圆点
           },
           {
             name: "成交量",
