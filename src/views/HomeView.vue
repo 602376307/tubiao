@@ -1,6 +1,14 @@
 <template>
   <div class="home">
     首页
+    <div>
+      请输入要查询的日期<input
+        type="text"
+        placeholder="格式为2022-6-20"
+        v-model="userdate"
+      />
+      <button @click="btnFn">查询</button>
+    </div>
     <div class="main" ref="content"></div>
   </div>
 </template>
@@ -17,7 +25,10 @@ export default {
       data: null, // 返回的数据
       vol: [], // 成交量
       close: [], // 收盘价
-      time: null, // 时间
+      pctChg: [], // 涨幅
+      time: null, // 时间 时分秒
+      date: null, // 时间 日期
+      userdate: "2022-6-21", // 用户输入日期
     };
   },
   created() {
@@ -38,21 +49,15 @@ export default {
       this.mySocket.onclose = this.socketClose;
     },
     socketOpen(e) {
+      // 连接成功
       console.log("open");
       // 请求数据
       this.mySocket.send(
         JSON.stringify({
           event: "stock_detail",
-          group: "stock_k_line",
-          version: "appv.controller.applet",
-          data: {
-            code: "000001.SZ",
-            category: "day",
-            size: "100",
-            page: "1",
-            token: "",
-            fuquan: "q",
-          },
+          group: "stock_time_sharing_diagram",
+          version: "appv.controller.v1",
+          data: { code: "000001.SZ", date: this.userdate },
         })
       );
     },
@@ -62,13 +67,16 @@ export default {
     socketMessage(e) {
       // 收到数据
       const data = JSON.parse(e.data);
-      console.log("message", data.data);
-      // 存储数据
-      this.data = data.data;
-      // 处理数据
-      this.dataFn();
-      // 绘制表格
-      this.getChart();
+      console.log("message", data.data.item);
+      // 判断是否开盘
+      if (data.data.item.length !== 0) {
+        // 已开盘 请求前一天数据
+        this.lastFn();
+        // 存储数据
+        this.data = data.data;
+      } else {
+        alert("当日未开盘，请换一天吧");
+      }
     },
     socketClose() {
       console.log("close");
@@ -116,32 +124,39 @@ export default {
         ],
         xAxis: [
           {
+            // 成交价格坐标系
             type: "category",
-            data: [
-              1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
-              20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35,
-              36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51,
-              52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67,
-              68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83,
-              84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99,
-              100,
-            ],
-            boundaryGap: false, // 坐标轴两边留白策略
+            data: this.time,
+            boundaryGap: false, // 坐标轴两边留白
             axisLine: { onZero: false }, // 坐标轴轴线相关
             splitLine: { show: false }, // 分隔线
+            axisTick: { show: false },
+            axisLabel: {
+              showMinLabel: true,
+              showMaxLabel: true,
+              hideOverlap: true,
+              interval: 119, // 标签间隔
+            },
+            // formatter: {
+            //   minute: "{HH}:{mm}",
+            // },
           },
+          // {
+          //   // 涨幅坐标系x
+          //   type: "category",
+          //   // data: this.time,
+          //   show: false,
+          //   // boundaryGap: false,
+          //   gridIndex: 1,
+          //   // axisLine: { onZero: false },
+          //   // axisTick: { show: false },
+          //   // splitLine: { show: false },
+          //   // axisLabel: { show: false },
+          // },
           {
-            // 第二个坐标系x
+            // 成交量坐标系x
             type: "category",
-            data: [
-              1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
-              20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35,
-              36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51,
-              52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67,
-              68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83,
-              84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99,
-              100,
-            ],
+            data: this.time,
             gridIndex: 1,
             axisLine: { onZero: false },
             axisTick: { show: false },
@@ -151,12 +166,22 @@ export default {
         ],
         yAxis: [
           {
+            // 成交价格坐标系y
             type: "value",
-            // scale: true,
+            scale: true,
+            splitNumber: 1,
           },
           {
-            // 第二个坐标系y
-            // scale: true,
+            // 涨幅坐标系y
+            type: "value",
+            scale: true,
+            splitNumber: 1,
+            position: "right",
+            gridIndex: 0,
+          },
+          {
+            // 成交量坐标系y
+            scale: true,
             gridIndex: 1,
             splitNumber: 2,
             axisLabel: { show: false },
@@ -173,11 +198,19 @@ export default {
             data: this.close,
             type: "line",
             symbol: "none", // 控制图上小圆点
+            yAxisIndex: 0,
+          },
+          {
+            name: "涨幅",
+            data: this.pctChg,
+            type: "line",
+            symbol: "none", // 控制图上小圆点
+            yAxisIndex: 0,
           },
           {
             name: "成交量",
             type: "bar",
-            xAxisIndex: 1, // 控制出现在第2个坐标系
+            xAxisIndex: 1, // 控制出现在第个坐标系
             yAxisIndex: 1,
             data: this.vol,
           },
@@ -185,26 +218,64 @@ export default {
       });
     },
     // 操作数据方法
-    dataFn() {
+    dataFn(lastClose, lastVol, lastPctChg) {
       // 筛选需要的数据
       // 成交量
-      let volList = [];
+      let volList = [lastVol];
       this.data.item.forEach((item, index) => {
-        volList.push(item[4]);
+        volList.push(item[6]);
       });
       this.vol = volList;
       // 收盘价
-      let closeList = [];
+      let closeList = [lastClose];
       this.data.item.forEach((item, index) => {
-        closeList.push(item[1]);
+        closeList.push(item[0]);
       });
       this.close = closeList;
       // 时间
-      let timeList = [];
+      let timeList = ["09:30"];
       this.data.item.forEach((item, index) => {
-        closeList.push(item[11]);
+        timeList.push(item[1].slice(11, 16));
       });
       this.time = timeList;
+      // 涨幅
+      let pctChgList = [lastPctChg];
+      this.data.item.forEach((item, index) => {
+        pctChgList.push(item[5]);
+      });
+      this.pctChg = pctChgList;
+      // console.log(this.close);
+    },
+    btnFn() {},
+    // 请求前一天数据
+    lastFn() {
+      const that = this;
+      const socket = new WebSocket("wss://stocktest.yj81.com/server/stock");
+      socket.onopen = () => {
+        socket.send(
+          JSON.stringify({
+            event: "stock_detail",
+            group: "stock_time_sharing_diagram",
+            version: "appv.controller.v1",
+            data: { code: "000001.SZ", date: "2022-6-20" },
+          })
+        );
+      };
+      socket.onerror = () => {};
+      socket.onmessage = (e) => {
+        // 收到前一天数据
+        const data = JSON.parse(e.data);
+        console.log("message", data.data.item);
+        const lastClose = data.data.item[239][0]; // 前一天15：30收盘价
+        const lastVol = data.data.item[239][6]; // 前一天15：30成交量
+        const lastPctChg = data.data.item[239][5]; // 前一天15：30涨幅
+        // console.log(lastVol);
+        // 处理今天数据
+        that.dataFn(lastClose, lastVol, lastPctChg);
+        // 绘制表格
+        that.getChart();
+      };
+      socket.onclose = () => {};
     },
   },
 };
