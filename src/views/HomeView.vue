@@ -119,7 +119,7 @@ export default {
             left: "10%",
             right: "8%",
             top: "63%",
-            height: "16%",
+            height: "20%",
           },
         ],
         xAxis: [
@@ -127,6 +127,7 @@ export default {
             // 成交价格坐标系
             type: "category",
             data: this.time,
+            gridIndex: 0,
             boundaryGap: false, // 坐标轴两边留白
             axisLine: { onZero: false }, // 坐标轴轴线相关
             splitLine: { show: false }, // 分隔线
@@ -141,18 +142,17 @@ export default {
             //   minute: "{HH}:{mm}",
             // },
           },
-          // {
-          //   // 涨幅坐标系x
-          //   type: "category",
-          //   // data: this.time,
-          //   show: false,
-          //   // boundaryGap: false,
-          //   gridIndex: 1,
-          //   // axisLine: { onZero: false },
-          //   // axisTick: { show: false },
-          //   // splitLine: { show: false },
-          //   // axisLabel: { show: false },
-          // },
+          {
+            // 涨幅坐标系x
+            type: "category",
+            data: this.time,
+            gridIndex: 0,
+            show: false,
+            boundaryGap: false, // 坐标轴两边留白
+            axisPointer: {
+              show: false, // 坐标轴指示器
+            },
+          },
           {
             // 成交量坐标系x
             type: "category",
@@ -162,6 +162,10 @@ export default {
             axisTick: { show: false },
             splitLine: { show: false },
             axisLabel: { show: false },
+            axisPointer: {
+              // 坐标轴指示器
+              label: { show: false },
+            },
           },
         ],
         yAxis: [
@@ -170,6 +174,7 @@ export default {
             type: "value",
             scale: true,
             splitNumber: 1,
+            gridIndex: 0,
           },
           {
             // 涨幅坐标系y
@@ -182,22 +187,29 @@ export default {
           {
             // 成交量坐标系y
             scale: true,
-            gridIndex: 1,
             splitNumber: 2,
             axisLabel: { show: false },
             axisLine: { show: false },
             axisTick: { show: false },
             splitLine: { show: false },
+            gridIndex: 1,
           },
         ],
         // 缩放区域
         dataZoom: {},
+        axisPointer: {
+          link: {
+            // 联动
+            xAxisIndex: [0, 1, 2],
+          },
+        },
         series: [
           {
             name: "成交价格",
             data: this.close,
             type: "line",
             symbol: "none", // 控制图上小圆点
+            xAxisIndex: 0,
             yAxisIndex: 0,
           },
           {
@@ -205,13 +217,14 @@ export default {
             data: this.pctChg,
             type: "line",
             symbol: "none", // 控制图上小圆点
-            yAxisIndex: 0,
+            xAxisIndex: 1,
+            yAxisIndex: 1,
           },
           {
             name: "成交量",
             type: "bar",
-            xAxisIndex: 1, // 控制出现在第个坐标系
-            yAxisIndex: 1,
+            xAxisIndex: 2, // 控制出现在第个坐标系
+            yAxisIndex: 2,
             data: this.vol,
           },
         ],
