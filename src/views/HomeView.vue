@@ -8,6 +8,7 @@
         v-model="userdate"
       />
       <button @click="btnFn">查询</button>
+      <button @click="$router.push('/about')">日K</button>
     </div>
     <div class="main" ref="content"></div>
   </div>
@@ -15,6 +16,7 @@
 
 <script>
 import * as echarts from "echarts";
+import { calMax, calMin } from "@/utils/data";
 export default {
   name: "HomeView",
   components: {},
@@ -28,7 +30,7 @@ export default {
       pctChg: [], // 涨幅
       time: null, // 时间 时分秒
       date: null, // 时间 日期
-      userdate: "2022-6-21", // 用户输入日期
+      userdate: "2022-6-21", // 用户输入日期,
     };
   },
   created() {
@@ -67,7 +69,7 @@ export default {
     socketMessage(e) {
       // 收到数据
       const data = JSON.parse(e.data);
-      console.log("message", data.data.item);
+      // console.log("message", data.data.item);
       // 判断是否开盘
       if (data.data.item.length !== 0) {
         // 已开盘 请求前一天数据
@@ -90,6 +92,7 @@ export default {
         // 提示框
         tooltip: {
           trigger: "axis",
+          formatter: "{b0}<br/>{a0}: {c0}<br />{a1}: {c1}%<br />{a2}: {c2}", // 内容格式器
           axisPointer: {
             type: "cross",
           },
@@ -150,7 +153,10 @@ export default {
             show: false,
             boundaryGap: false, // 坐标轴两边留白
             axisPointer: {
-              show: false, // 坐标轴指示器
+              // show: false, // 坐标轴指示器
+              label: {
+                show: false,
+              },
             },
           },
           {
@@ -158,6 +164,7 @@ export default {
             type: "category",
             data: this.time,
             gridIndex: 1,
+            boundaryGap: false,
             axisLine: { onZero: false },
             axisTick: { show: false },
             splitLine: { show: false },
@@ -175,6 +182,13 @@ export default {
             scale: true,
             splitNumber: 1,
             gridIndex: 0,
+            // min: (value) => {
+            //   return (value.min * 1.2).toFixed(2);
+            // },
+            // max: (value) => {
+            //   return (value.max * 1.2).toFixed(2);
+            // },
+            // interval: 5,
           },
           {
             // 涨幅坐标系y
@@ -183,6 +197,24 @@ export default {
             splitNumber: 1,
             position: "right",
             gridIndex: 0,
+            // min: (value) => {
+            //   return value.min * 1.3;
+            // },
+            // max: (value) => {
+            //   return value.max * 1.3;
+            // },
+            // interval: (calMax(this.pctChg) - calMin(this.pctChg)) / 2,
+            // 刻度标签格式器
+            axisLabel: {
+              formatter: (value) => {
+                return (value * 100).toFixed(2) + "%";
+              },
+            },
+            axisPointer: {
+              label: {
+                formatter: "{value} %",
+              },
+            },
           },
           {
             // 成交量坐标系y
@@ -196,22 +228,52 @@ export default {
           },
         ],
         // 缩放区域
-        dataZoom: {},
+        dataZoom: [
+          { type: "inside", xAxisIndex: [0, 1, 2] },
+          { type: "slider", xAxisIndex: [0, 1, 2] },
+        ],
         axisPointer: {
           link: {
             // 联动
             xAxisIndex: [0, 1, 2],
           },
+          label: {
+            precision: 2, // 坐标文本标签保留2位小数
+          },
         },
         series: [
+          // 成交价格
           {
             name: "成交价格",
             data: this.close,
             type: "line",
             symbol: "none", // 控制图上小圆点
+            smooth: true,
             xAxisIndex: 0,
             yAxisIndex: 0,
+            // 面积颜色渐变
+            areaStyle: {
+              color: {
+                type: "linear",
+                x: 0,
+                y: 0,
+                x2: 0,
+                y2: 1,
+                colorStops: [
+                  {
+                    offset: 0,
+                    color: "#fc8952", // 0% 处的颜色
+                  },
+                  {
+                    offset: 1,
+                    color: "#fff", // 100% 处的颜色
+                  },
+                ],
+                global: false,
+              },
+            },
           },
+          // 涨幅
           {
             name: "涨幅",
             data: this.pctChg,
@@ -219,13 +281,38 @@ export default {
             symbol: "none", // 控制图上小圆点
             xAxisIndex: 1,
             yAxisIndex: 1,
+            lineStyle: {
+              // opacity: 0,
+            }, // 线条样式
           },
+          // 成交量
           {
             name: "成交量",
             type: "bar",
             xAxisIndex: 2, // 控制出现在第个坐标系
             yAxisIndex: 2,
             data: this.vol,
+            // 颜色
+            itemStyle: {
+              normal: {
+                // 以函数形式设置 dataIndex 当前数据下标
+                color: (params) => {
+                  // 第一个先默认为红
+                  if (params.dataIndex === 0) {
+                    return "red";
+                  } else {
+                    if (
+                      this.pctChg[params.dataIndex] >=
+                      this.pctChg[params.dataIndex - 1]
+                    ) {
+                      return "red";
+                    } else {
+                      return "green";
+                    }
+                  }
+                },
+              },
+            },
           },
         ],
       });
@@ -252,13 +339,16 @@ export default {
       });
       this.time = timeList;
       // 涨幅
-      let pctChgList = [lastPctChg];
+      let pctChgList = [lastPctChg]; // 将小数化为百分数
       this.data.item.forEach((item, index) => {
         pctChgList.push(item[5]);
+        // pctChgList.push((item[5] * 100).toFixed(2) + "%");
       });
+
+      // console.log(pctChgList);
       this.pctChg = pctChgList;
-      // console.log(this.close);
     },
+    //
     btnFn() {},
     // 请求前一天数据
     lastFn() {
@@ -278,7 +368,7 @@ export default {
       socket.onmessage = (e) => {
         // 收到前一天数据
         const data = JSON.parse(e.data);
-        console.log("message", data.data.item);
+        // console.log("message", data.data.item);
         const lastClose = data.data.item[239][0]; // 前一天15：30收盘价
         const lastVol = data.data.item[239][6]; // 前一天15：30成交量
         const lastPctChg = data.data.item[239][5]; // 前一天15：30涨幅
