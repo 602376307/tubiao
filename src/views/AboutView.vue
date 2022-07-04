@@ -65,7 +65,7 @@ export default {
           group: "stock_k_line",
           version: "appv.controller.applet",
           data: {
-            code: "000002.SZ",
+            code: "300990.SZ",
             category: "day",
             size: "100",
             page: "1",
