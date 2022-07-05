@@ -10,7 +10,13 @@
       <button @click="btnFn">查询</button>
       <button @click="$router.push('/')">分时</button>
     </div>
-    <div class="main" ref="content"></div>
+    <div
+      class="main"
+      ref="content"
+      @touchstart="gtouchstart()"
+      @touchmove="gtouchmove()"
+      @touchend="showDeleteButton()"
+    ></div>
   </div>
 </template>
 
@@ -36,6 +42,8 @@ export default {
       pctChg: [], // 涨幅
       time: null, // 时间 日期
       // userdate: "", // 用户输入日期
+      isShowTools: false,
+      timeOutEvent: null,
     };
   },
   created() {
@@ -83,7 +91,7 @@ export default {
       const data = JSON.parse(e.data);
       console.log("message", data.data.item);
       // 判断是否开盘
-      if (data.data.item.length !== 0) {
+      if (data.data.item.length != 0) {
         // 已开盘 请求前一天数据
         // this.lastFn();
         // 存储数据
@@ -93,7 +101,6 @@ export default {
         // 绘制图表
         this.getChart();
       } else {
-        alert("当日未开盘，请换一天吧");
       }
     },
     socketClose() {
@@ -108,7 +115,7 @@ export default {
         // 提示框
         tooltip: {
           trigger: "axis",
-          // formatter: "{b0}<br/>{a1}: {c1}%<br />{a2}: {c2}", // 内容格式器
+          show: false,
           formatter: (param) => {
             if (param[0].data[1]) {
               return [
@@ -145,14 +152,14 @@ export default {
           textStyle: {
             color: "#000",
           },
-          position: function (pos, params, el, elRect, size) {
-            const obj = {
-              top: 10,
-            };
-            // 根据鼠标位置控制显示位置
-            obj[["left", "right"][+(pos[0] < size.viewSize[0] / 2)]] = 30;
-            return obj;
-          },
+          // position: function (pos, params, el, elRect, size) {
+          //   const obj = {
+          //     top: 10,
+          //   };
+          //   // 根据鼠标位置控制显示位置
+          //   obj[["left", "right"][+(pos[0] < size.viewSize[0] / 2)]] = 30;
+          //   return obj;
+          // },
         },
         // 网格
         grid: [
@@ -171,10 +178,10 @@ export default {
         xAxis: [
           {
             // 日K坐标系
-            // type: "category",
+            // type: "category", 有data自动添加该属性
             data: this.time,
             gridIndex: 0,
-            boundaryGap: false, // 坐标轴两边留白
+            // boundaryGap: false, // 坐标轴两边留白
             axisLine: { onZero: false }, // 坐标轴轴线相关
             splitLine: { show: false }, // 分隔线
             axisTick: { show: false },
@@ -184,9 +191,13 @@ export default {
               hideOverlap: true,
               interval: 12, // 标签间隔
             },
-            // formatter: {
-            //   minute: "{HH}:{mm}",
-            // },
+            max: (value) => {
+              if (this.data.item.length < 10) {
+                return 10;
+              } else {
+                return value.max;
+              }
+            },
           },
           {
             // 涨幅坐标系x
@@ -194,12 +205,19 @@ export default {
             data: this.time,
             gridIndex: 0,
             show: false,
-            boundaryGap: false, // 坐标轴两边留白
+            // boundaryGap: false, // 坐标轴两边留白
             axisPointer: {
               // show: false, // 坐标轴指示器
               label: {
                 show: false,
               },
+            },
+            max: (value) => {
+              if (this.data.item.length < 5) {
+                return 5;
+              } else {
+                return value.max;
+              }
             },
           },
           {
@@ -207,7 +225,7 @@ export default {
             type: "category",
             data: this.time,
             gridIndex: 1,
-            boundaryGap: false,
+            // boundaryGap: false,
             axisLine: { onZero: false },
             axisTick: { show: false },
             splitLine: { show: false },
@@ -216,6 +234,13 @@ export default {
               // 坐标轴指示器
               label: { show: false },
             },
+            max: (value) => {
+              if (this.data.item.length < 10) {
+                return 10;
+              } else {
+                return value.max;
+              }
+            },
           },
           // 涨跌额坐标系x
           {
@@ -223,12 +248,19 @@ export default {
             data: this.time,
             gridIndex: 0,
             show: false,
-            boundaryGap: false, // 坐标轴两边留白
+            // boundaryGap: false, // 坐标轴两边留白
             axisPointer: {
               // show: false, // 坐标轴指示器
               label: {
                 show: false,
               },
+            },
+            max: (value) => {
+              if (this.data.item.length < 5) {
+                return 5;
+              } else {
+                return value.max;
+              }
             },
           },
           // 成交额坐标系x
@@ -237,12 +269,19 @@ export default {
             data: this.time,
             gridIndex: 0,
             show: false,
-            boundaryGap: false, // 坐标轴两边留白
+            // boundaryGap: false, // 坐标轴两边留白
             axisPointer: {
               // show: false, // 坐标轴指示器
               label: {
                 show: false,
               },
+            },
+            max: (value) => {
+              if (this.data.item.length < 5) {
+                return 5;
+              } else {
+                return value.max;
+              }
             },
           },
         ],
@@ -251,8 +290,17 @@ export default {
             // 日K坐标系y
             type: "value",
             scale: true,
-            // splitNumber: 1,
+            // splitNumber: 2,
             gridIndex: 0,
+            max: (value) => {
+              //   if (this.data.item.length < 5) {
+              //     return (value.max * 1.2).toFixed(0);
+              //   } else {
+              //     return (value.max * 1.2).toFixed(0);
+              //   }
+              return (value.max * 1.2).toFixed(0);
+            },
+            // interval: 10,
           },
           {
             // 涨幅坐标系y
@@ -274,6 +322,13 @@ export default {
             axisTick: { show: false },
             splitLine: { show: false },
             gridIndex: 1,
+            max: (value) => {
+              if (this.data.item.length < 5) {
+                return value.max * 5;
+              } else {
+                return value.max * 2;
+              }
+            },
           },
           // 涨跌额坐标系y
           {
@@ -300,8 +355,19 @@ export default {
         ],
         // 缩放区域
         dataZoom: [
-          { type: "inside", xAxisIndex: [0, 1, 2, 3, 4, 5] },
-          { type: "slider", xAxisIndex: [0, 1, 2, 3, 4, 5] },
+          {
+            type: "inside",
+            xAxisIndex: [0, 1, 2, 3, 4, 5],
+            moveOnMouseMove: true,
+            start: this.data.item.length < 10 ? 0 : 30,
+            end: this.data.item.length < 10 ? 100 : 60, // 根据数据多少判断视图范围
+          },
+          // {
+          //   type: "slider",
+          //   xAxisIndex: [0, 1, 2, 3, 4, 5],
+          //   start: this.data.item.length < 10 ? 0 : 30,
+          //   end: this.data.item.length < 10 ? 100 : 60,
+          // },
         ],
         axisPointer: {
           link: {
@@ -389,10 +455,10 @@ export default {
     // 操作数据方法
     dataFn(lastClose, lastVol, lastPctChg) {
       // 筛选需要的数据
-      // 成交量
+      // 成交量 => 变为手 100股为1手
       let volList = [];
       this.data.item.forEach((item, index) => {
-        volList.push(item[4]);
+        volList.push(item[4] / 100);
       });
       this.vol = volList;
       // 收盘价
@@ -470,16 +536,68 @@ export default {
       };
       socket.onclose = () => {};
     },
+    //长按事件（起始）
+    gtouchstart() {
+      var that = this;
+      this.timeOutEvent = setTimeout(() => {
+        that.longPress();
+      }, 800); //这里设置定时器，定义长按500毫秒触发长按事件
+      return false;
+    },
+    //手释放，如果在500毫秒内就释放，则取消长按事件，此时可以执行onclick应该执行的事件
+    showDeleteButton() {
+      clearTimeout(this.timeOutEvent); //清除定时器
+      if (this.timeOutEvent != 0) {
+        //这里写要执行的内容（如onclick事件）
+        console.log("点击但未长按");
+        this.chart.setOption({
+          tooltip: {
+            show: false,
+          },
+          dataZoom: {
+            moveOnMouseMove: true,
+          },
+        });
+      }
+      return false;
+    },
+    //如果手指有移动，则取消所有事件，此时说明用户只是要移动而不是长按
+    gtouchmove() {
+      this.chart.setOption({
+        tooltip: {
+          show: false,
+        },
+        dataZoom: {
+          moveOnMouseMove: true,
+        },
+      });
+      clearTimeout(this.timeOutEvent); //清除定时器
+      this.timeOutEvent = 0;
+    },
+    //真正长按后应该执行的内容
+    longPress(val) {
+      this.timeOutEvent = 0;
+      //执行长按要执行的内容，如弹出菜单
+      console.log("长按");
+      // 合并图表设置
+      this.chart.setOption({
+        tooltip: {
+          show: true,
+        },
+        dataZoom: {
+          moveOnMouseMove: false,
+        },
+      });
+    },
   },
 };
 </script>
 
 <style>
 .main {
-  width: 1000px;
-  height: 700px;
+  width: 800px;
+  height: 500px;
   margin: auto;
   /* background-color: aqua; */
 }
 </style>
-

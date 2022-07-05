@@ -28,9 +28,11 @@ export default {
       vol: [], // 成交量
       close: [], // 收盘价
       pctChg: [], // 涨幅
+      avgPrice: [], // 均价
       time: null, // 时间 时分秒
       date: null, // 时间 日期
       userdate: "2022-6-21", // 用户输入日期,
+      Dvalue: null, // 最大差值
     };
   },
   created() {
@@ -59,7 +61,7 @@ export default {
           event: "stock_detail",
           group: "stock_time_sharing_diagram",
           version: "appv.controller.v1",
-          data: { code: "000001.SZ", date: this.userdate },
+          data: { code: "000001.SZ", date: "2022-6-23" },
         })
       );
     },
@@ -69,7 +71,7 @@ export default {
     socketMessage(e) {
       // 收到数据
       const data = JSON.parse(e.data);
-      // console.log("message", data.data.item);
+      console.log("message", data.data.item);
       // 判断是否开盘
       if (data.data.item.length !== 0) {
         // 已开盘 请求前一天数据
@@ -92,7 +94,7 @@ export default {
         // 提示框
         tooltip: {
           trigger: "axis",
-          formatter: "{b0}<br/>{a0}: {c0}<br />{a1}: {c1}%<br />{a2}: {c2}", // 内容格式器
+          // formatter: "{b0}<br/>{a0}: {c0}<br />{a1}: {c1}%<br />{a2}: {c2}", // 内容格式器
           axisPointer: {
             type: "cross",
           },
@@ -174,6 +176,17 @@ export default {
               label: { show: false },
             },
           },
+          // 均价坐标系x
+          {
+            data: this.time,
+            gridIndex: 0,
+            show: false,
+            boundaryGap: false, // 坐标轴两边留白
+            axisPointer: {
+              // 坐标轴指示器
+              label: { show: false },
+            },
+          },
         ],
         yAxis: [
           {
@@ -181,12 +194,17 @@ export default {
             type: "value",
             scale: true,
             splitNumber: 1,
-            gridIndex: 0,
-            // min: (value) => {
-            //   return (value.min * 1.2).toFixed(2);
-            // },
+            gridIndex: 0, // 坐标系在哪个grid
             // max: (value) => {
-            //   return (value.max * 1.2).toFixed(2);
+            //   this.Dvalue =
+            //     Math.abs(this.close[0] - value.max) >
+            //     Math.abs(this.close[0] - value.min)
+            //       ? Math.abs(this.close[0] - value.max)
+            //       : Math.abs(this.close[0] - value.min);
+            //   return this.close[0] + this.Dvalue;
+            // },
+            // mim: (value) => {
+            //   return this.close[0] - this.Dvalue;
             // },
             // interval: 5,
           },
@@ -198,10 +216,10 @@ export default {
             position: "right",
             gridIndex: 0,
             // min: (value) => {
-            //   return value.min * 1.3;
+            //   return -(this.close[0] + this.Dvalue - 1) / 10;
             // },
             // max: (value) => {
-            //   return value.max * 1.3;
+            //   return (this.close[0] + this.Dvalue - 1) / 10;
             // },
             // interval: (calMax(this.pctChg) - calMin(this.pctChg)) / 2,
             // 刻度标签格式器
@@ -212,7 +230,9 @@ export default {
             },
             axisPointer: {
               label: {
-                formatter: "{value} %",
+                formatter: (params) => {
+                  return (params.value * 100).toFixed(2) + "%";
+                },
               },
             },
           },
@@ -226,12 +246,22 @@ export default {
             splitLine: { show: false },
             gridIndex: 1,
           },
+          // 均价坐标系y
+          {
+            type: "value",
+            show: false,
+            gridIndex: 0,
+            axisPointer: {
+              // 坐标轴指示器
+              label: { show: false },
+            },
+          },
         ],
         // 缩放区域
-        dataZoom: [
-          { type: "inside", xAxisIndex: [0, 1, 2] },
-          { type: "slider", xAxisIndex: [0, 1, 2] },
-        ],
+        // dataZoom: [
+        //   { type: "inside", xAxisIndex: [0, 1, 2] },
+        //   { type: "slider", xAxisIndex: [0, 1, 2] },
+        // ],
         axisPointer: {
           link: {
             // 联动
@@ -282,7 +312,7 @@ export default {
             xAxisIndex: 1,
             yAxisIndex: 1,
             lineStyle: {
-              // opacity: 0,
+              opacity: 0,
             }, // 线条样式
           },
           // 成交量
@@ -297,33 +327,42 @@ export default {
               normal: {
                 // 以函数形式设置 dataIndex 当前数据下标
                 color: (params) => {
-                  // 第一个先默认为红
+                  // 第一个先默认为灰色
                   if (params.dataIndex === 0) {
-                    return "red";
+                    return "grey";
                   } else {
-                    if (
-                      this.pctChg[params.dataIndex] >=
+                    return this.pctChg[params.dataIndex] >=
                       this.pctChg[params.dataIndex - 1]
-                    ) {
-                      return "red";
-                    } else {
-                      return "green";
-                    }
+                      ? "red"
+                      : "green";
                   }
                 },
               },
+            },
+          },
+          // 均价
+          {
+            name: "均价",
+            data: this.avgPrice,
+            type: "line",
+            symbol: "none",
+            xAxisIndex: 0,
+            yAxisIndex: 0,
+            lineStyle: {
+              color: "red",
+              with: 5,
             },
           },
         ],
       });
     },
     // 操作数据方法
-    dataFn(lastClose, lastVol, lastPctChg) {
+    dataFn(lastClose, lastVol, lastPctChg, lastAvgPrice) {
       // 筛选需要的数据
       // 成交量
-      let volList = [lastVol];
+      let volList = [lastVol / 100];
       this.data.item.forEach((item, index) => {
-        volList.push(item[6]);
+        volList.push(item[6] / 100);
       });
       this.vol = volList;
       // 收盘价
@@ -344,9 +383,14 @@ export default {
         pctChgList.push(item[5]);
         // pctChgList.push((item[5] * 100).toFixed(2) + "%");
       });
-
       // console.log(pctChgList);
       this.pctChg = pctChgList;
+      // 均价
+      let avgPriceList = [lastAvgPrice];
+      this.data.item.forEach((item) => {
+        avgPriceList.push(item[3]);
+      });
+      // this.avgPrice = avgPriceList;
     },
     //
     btnFn() {},
@@ -372,9 +416,10 @@ export default {
         const lastClose = data.data.item[239][0]; // 前一天15：30收盘价
         const lastVol = data.data.item[239][6]; // 前一天15：30成交量
         const lastPctChg = data.data.item[239][5]; // 前一天15：30涨幅
+        const lastAvgPrice = data.data.item[239][3]; // 前一天15：30均价
         // console.log(lastVol);
         // 处理今天数据
-        that.dataFn(lastClose, lastVol, lastPctChg);
+        that.dataFn(lastClose, lastVol, lastPctChg, lastAvgPrice);
         // 绘制表格
         that.getChart();
       };
