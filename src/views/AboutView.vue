@@ -35,7 +35,7 @@ export default {
       close: [], // 收盘价
       hight: [], // 最高价
       low: [], // 最低价
-      openCloseHightLow: [], // 开收高低
+      openCloseLowHight: [], // 开收低高
       vol: [], // 成交量
       pct: [], // 涨跌额
       amount: [], // 成交额
@@ -44,6 +44,7 @@ export default {
       // userdate: "", // 用户输入日期
       isShowTools: false,
       timeOutEvent: null,
+      flag: true,
     };
   },
   created() {
@@ -75,7 +76,7 @@ export default {
           data: {
             code: "300990.SZ",
             category: "day",
-            size: "100",
+            size: "10",
             page: "1",
             token: "",
             fuquan: "q",
@@ -115,14 +116,18 @@ export default {
         // 提示框
         tooltip: {
           trigger: "axis",
-          show: false,
+          show: true,
+          position: (point, params, dom, rect, size) => {
+            // 固定在顶部
+            return [point[0] - 180, "-5%"];
+          },
           formatter: (param) => {
             if (param[0].data[1]) {
               return [
                 "时间: " + param[0].name + '<hr size=1 style="margin: 3px 0">',
                 "开盘价: " + param[0].data[1] + "<br/>",
-                "最高价: " + param[0].data[3] + "<br/>",
-                "最低价: " + param[0].data[4] + "<br/>",
+                "最高价: " + param[0].data[4] + "<br/>",
+                "最低价: " + param[0].data[3] + "<br/>",
                 "收盘价: " + param[0].data[2] + "<br/>",
                 "涨跌额: " + param[2].data + "<br/>",
                 "涨跌幅: " + param[1].data + "<br/>",
@@ -133,8 +138,8 @@ export default {
               return [
                 "时间: " + param[0].name + '<hr size=1 style="margin: 3px 0">',
                 "开盘价: " + param[1].data[1] + "<br/>",
-                "最高价: " + param[1].data[3] + "<br/>",
-                "最低价: " + param[1].data[4] + "<br/>",
+                "最高价: " + param[1].data[4] + "<br/>",
+                "最低价: " + param[1].data[3] + "<br/>",
                 "收盘价: " + param[1].data[2] + "<br/>",
                 "涨跌额: " + param[3].data + "<br/>",
                 "涨跌幅: " + param[2].data + "<br/>",
@@ -379,10 +384,89 @@ export default {
           // 成交价格
           {
             name: "日K",
-            data: this.openCloseHightLow,
+            data: this.openCloseLowHight,
             type: "candlestick",
             xAxisIndex: 0,
             yAxisIndex: 0,
+            markPoint: {
+              data: [
+                {
+                  symbol: (value, params) => {
+                    console.log(value, params);
+                    console.log(this.chart.getOption().xAxis[0]);
+                    console.log(
+                      this.chart.getOption().xAxis[0].data[params.data.coord[0]]
+                    );
+                    if (params.data.coord[0] > 50) {
+                      //  右下
+                      return "path://M708.2666625976562,648.5333251953125l0,-196.26666259765625l85.33331298828125,0l0,341.33331298828125l-341.33331298828125,0l0,-85.33331298828125l196.26666259765625,0L256,315.73333740234375L315.73333740234375,256l392.5333251953125,392.5333251953125Z";
+                    } else {
+                      // 左下
+                      return "path://M341.3333435058594,648.5333251953125l0,-196.26666259765625L256,452.26666259765625l0,341.33331298828125l341.33331298828125,0l0,-85.33331298828125L401.0666809082031,708.2666625976562l392.5332946777344,-392.5333251953125L733.8666381835938,256L341.3333435058594,648.5333251953125Z";
+                    }
+                  },
+                  // symbol:
+                  // 右上
+                  // "path://M708.2666625976562,401.0666809082031L708.2666625976562,597.3333129882812l85.33331298828125,0L793.5999755859375,256l-341.33331298828125,0l0,85.33334350585938l196.26666259765625,0L256,733.8666381835938l59.73333740234375,59.73333740234375l392.5333251953125,-392.5332946777344Z",
+                  //  右下
+                  // "path://M708.2666625976562,648.5333251953125l0,-196.26666259765625l85.33331298828125,0l0,341.33331298828125l-341.33331298828125,0l0,-85.33331298828125l196.26666259765625,0L256,315.73333740234375L315.73333740234375,256l392.5333251953125,392.5333251953125Z",
+                  // 左上
+                  // "path://M341.3333435058594,401.0666809082031L341.3333435058594,597.3333129882812L256,597.3333129882812L256,256l341.33331298828125,0l0,85.33334350585938L401.0666809082031,341.3333435058594l392.5332946777344,392.5332946777344l-59.73333740234375,59.73333740234375L341.3333435058594,401.0666809082031Z",
+                  // 左下
+                  // "path://M341.3333435058594,648.5333251953125l0,-196.26666259765625L256,452.26666259765625l0,341.33331298828125l341.33331298828125,0l0,-85.33331298828125L401.0666809082031,708.2666625976562l392.5332946777344,-392.5333251953125L733.8666381835938,256L341.3333435058594,648.5333251953125Z",
+                  symbolSize: 13,
+                  symbolOffset: (value, params) => {
+                    if (params.data.coord[0] > 50) {
+                      return ["-70%", "-70%"];
+                    } else {
+                      return ["70%", "-70%"];
+                    }
+                  },
+                  name: "max",
+                  type: "max",
+                  valueDim: "highest", // 所用的数据项  图表默认顺序为开收低高 默认名称为highest   后台数据为开收高低 操作数据时变更了push顺序   实际上高低会自动识别 图一致
+                  // 标记相关
+                  label: {
+                    position: "top",
+                    align: "left",
+                    // verticalAlign: app.config.verticalAlign,
+                    distance: 7,
+                  },
+                },
+                {
+                  name: "min",
+                  type: "min",
+                  valueDim: "lowest",
+                  itemStyle: {
+                    color: "green",
+                  },
+                  symbol: (value, params) => {
+                    // console.log(value, params);
+                    if (params.data.coord[0] > 50) {
+                      //  右上
+                      return "path://M708.2666625976562,401.0666809082031L708.2666625976562,597.3333129882812l85.33331298828125,0L793.5999755859375,256l-341.33331298828125,0l0,85.33334350585938l196.26666259765625,0L256,733.8666381835938l59.73333740234375,59.73333740234375l392.5333251953125,-392.5332946777344Z";
+                    } else {
+                      // 左上
+                      return "path://M341.3333435058594,401.0666809082031L341.3333435058594,597.3333129882812L256,597.3333129882812L256,256l341.33331298828125,0l0,85.33334350585938L401.0666809082031,341.3333435058594l392.5332946777344,392.5332946777344l-59.73333740234375,59.73333740234375L341.3333435058594,401.0666809082031Z";
+                    }
+                  },
+                  symbolSize: 13,
+                  symbolOffset: (value, params) => {
+                    if (params.data.coord[0] > 50) {
+                      return ["-70%", "70%"];
+                    } else {
+                      return ["70%", "70%"];
+                    }
+                  },
+                  label: {
+                    position: "bottom",
+                    align: "right",
+                    // verticalAlign: app.config.verticalAlign,
+                    distance: 1,
+                  },
+                },
+              ],
+            },
           },
           // 涨幅
           {
@@ -481,15 +565,15 @@ export default {
       });
       // console.log(pctChgList);
       this.pctChg = pctChgList;
-      // 开收高低 日k
-      let openCloseHightLowList = [];
+      // 开收低高 日k
+      let openCloseLowHightList = [];
       this.data.item.forEach((item) => {
-        openCloseHightLowList.push(item[0]);
-        openCloseHightLowList.push(item[1]);
-        openCloseHightLowList.push(item[2]);
-        openCloseHightLowList.push(item[3]);
-        this.openCloseHightLow.push(openCloseHightLowList);
-        openCloseHightLowList = [];
+        openCloseLowHightList.push(item[0]);
+        openCloseLowHightList.push(item[1]);
+        openCloseLowHightList.push(item[3]);
+        openCloseLowHightList.push(item[2]);
+        this.openCloseLowHight.push(openCloseLowHightList);
+        openCloseLowHightList = [];
       });
       // 涨跌额
       let pctList = [];
@@ -541,10 +625,10 @@ export default {
       var that = this;
       this.timeOutEvent = setTimeout(() => {
         that.longPress();
-      }, 800); //这里设置定时器，定义长按500毫秒触发长按事件
+      }, 800); //这里设置定时器，定义长按  毫秒触发长按事件
       return false;
     },
-    //手释放，如果在500毫秒内就释放，则取消长按事件，此时可以执行onclick应该执行的事件
+    //手释放，则取消长按事件，此时可以执行onclick应该执行的事件
     showDeleteButton() {
       clearTimeout(this.timeOutEvent); //清除定时器
       if (this.timeOutEvent != 0) {
@@ -561,8 +645,10 @@ export default {
       }
       return false;
     },
-    //如果手指有移动，则取消所有事件，此时说明用户只是要移动而不是长按
+    //如果手指有移动，则取消所有事件，此时说明只是要移动而不是长按
     gtouchmove() {
+      clearTimeout(this.timeOutEvent); //清除定时器
+      this.timeOutEvent = 0;
       this.chart.setOption({
         tooltip: {
           show: false,
@@ -571,13 +657,12 @@ export default {
           moveOnMouseMove: true,
         },
       });
-      clearTimeout(this.timeOutEvent); //清除定时器
-      this.timeOutEvent = 0;
+      // return false;
     },
     //真正长按后应该执行的内容
     longPress(val) {
       this.timeOutEvent = 0;
-      //执行长按要执行的内容，如弹出菜单
+      //执行长按要执行的内容
       console.log("长按");
       // 合并图表设置
       this.chart.setOption({
@@ -588,6 +673,33 @@ export default {
           moveOnMouseMove: false,
         },
       });
+    },
+    // 自动获取屏幕坐标
+    autoGetOffset() {
+      this.chart.getDom();
+    },
+    // 当最高价靠右时调用  更新图标设置
+    hightRight() {
+      if (this.flag) {
+        console.log(11);
+        this.chart.setOption({
+          series: [
+            {
+              name: "日K",
+              markPoint: {
+                data: {
+                  name: "max",
+                  symbolOffset: ["-70%", "-70%"],
+                  label: {
+                    align: "right",
+                  },
+                },
+              },
+            },
+          ],
+        });
+        this.flag = false;
+      }
     },
   },
 };
