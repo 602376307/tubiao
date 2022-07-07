@@ -44,9 +44,9 @@ Vue.config.productionTip = false
 //     }, false)
 // })
 
-Object.prototype.abc = function() {
-    console.log('abc');
-}
+// Object.prototype.abc = function() {
+//     console.log('abc');
+// }
 
 new Vue({
     router,

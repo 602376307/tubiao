@@ -76,7 +76,7 @@ export default {
           data: {
             code: "300990.SZ",
             category: "day",
-            size: "10",
+            size: "300",
             page: "1",
             token: "",
             fuquan: "q",
@@ -113,6 +113,7 @@ export default {
       this.chart = echarts.init(this.$refs.content);
       // 图表内容设置
       this.chart.setOption({
+        animation: false, //禁止动画效果 加强移动端滑动时流畅度
         // 提示框
         tooltip: {
           trigger: "axis",
@@ -393,7 +394,9 @@ export default {
                 {
                   symbol: (value, params) => {
                     console.log(value, params);
-                    console.log(this.chart.getOption().xAxis[0]);
+                    const list = document.getElementsByTagName("text");
+
+                    console.log();
                     console.log(
                       this.chart.getOption().xAxis[0].data[params.data.coord[0]]
                     );
@@ -629,11 +632,11 @@ export default {
       return false;
     },
     //手释放，则取消长按事件，此时可以执行onclick应该执行的事件
-    showDeleteButton() {
+    showDeleteButton(e) {
       clearTimeout(this.timeOutEvent); //清除定时器
       if (this.timeOutEvent != 0) {
         //这里写要执行的内容（如onclick事件）
-        console.log("点击但未长按");
+        console.log(e, "点击但未长按");
         this.chart.setOption({
           tooltip: {
             show: false,
@@ -649,6 +652,10 @@ export default {
     gtouchmove() {
       clearTimeout(this.timeOutEvent); //清除定时器
       this.timeOutEvent = 0;
+      // if (this.timeOutEvent != 0) {
+      //这里写要执行的内容（如onclick事件）
+      // alert("移动");
+      console.log("移动");
       this.chart.setOption({
         tooltip: {
           show: false,
@@ -657,6 +664,7 @@ export default {
           moveOnMouseMove: true,
         },
       });
+      // }
       // return false;
     },
     //真正长按后应该执行的内容
@@ -679,28 +687,28 @@ export default {
       this.chart.getDom();
     },
     // 当最高价靠右时调用  更新图标设置
-    hightRight() {
-      if (this.flag) {
-        console.log(11);
-        this.chart.setOption({
-          series: [
-            {
-              name: "日K",
-              markPoint: {
-                data: {
-                  name: "max",
-                  symbolOffset: ["-70%", "-70%"],
-                  label: {
-                    align: "right",
-                  },
-                },
-              },
-            },
-          ],
-        });
-        this.flag = false;
-      }
-    },
+    // hightRight() {
+    //   if (this.flag) {
+    //     console.log(11);
+    //     this.chart.setOption({
+    //       series: [
+    //         {
+    //           name: "日K",
+    //           markPoint: {
+    //             data: {
+    //               name: "max",
+    //               symbolOffset: ["-70%", "-70%"],
+    //               label: {
+    //                 align: "right",
+    //               },
+    //             },
+    //           },
+    //         },
+    //       ],
+    //     });
+    //     this.flag = false;
+    //   }
+    // },
   },
 };
 </script>
@@ -711,5 +719,6 @@ export default {
   height: 500px;
   margin: auto;
   /* background-color: aqua; */
+  /* touch-action: none; */
 }
 </style>
