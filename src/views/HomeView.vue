@@ -2,12 +2,12 @@
   <div class="home">
     首页
     <div>
-      请输入要查询的日期<input
+      <!-- 请输入要查询的日期<input
         type="text"
         placeholder="格式为2022-6-20"
         v-model="userdate"
       />
-      <button @click="btnFn">查询</button>
+      <button @click="btnFn">查询</button> -->
       <button @click="$router.push('/about')">日K</button>
     </div>
     <div class="main" ref="content"></div>

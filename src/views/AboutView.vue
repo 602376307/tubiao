@@ -1,13 +1,12 @@
 <template>
   <div class="home">
-    首页
     <div>
       <!-- 请输入要查询的日期<input
         type="text"
         placeholder="格式为2022-6-20"
         v-model="userdate"
       /> -->
-      <button @click="btnFn">查询</button>
+      <!-- <button @click="btnFn">查询</button> -->
       <button @click="$router.push('/')">分时</button>
     </div>
     <div
@@ -76,7 +75,7 @@ export default {
           data: {
             code: "300990.SZ",
             category: "day",
-            size: "300",
+            size: "100",
             page: "1",
             token: "",
             fuquan: "q",
